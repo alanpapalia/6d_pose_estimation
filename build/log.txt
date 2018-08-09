@@ -1,0 +1,6 @@
+[ 68%] Built target patch_extractor
+[ 68%] Built target surface_normals_generator
+[ 68%] Building CXX object CMakeFiles/Grabcut.dir/grabcut.cpp.o
+CMakeFiles/Grabcut.dir/build.make:62: recipe for target 'CMakeFiles/Grabcut.dir/grabcut.cpp.o' failed
+CMakeFiles/Makefile2:68: recipe for target 'CMakeFiles/Grabcut.dir/all' failed
+Makefile:83: recipe for target 'all' failed

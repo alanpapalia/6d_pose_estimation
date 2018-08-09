@@ -4,7 +4,7 @@
 #include <pcl/features/normal_3d.h>
 #include <pcl/ModelCoefficients.h>
 #include <pcl/segmentation/sac_segmentation.h>
-
+#include <pcl/io/ply_io.h>
 #include <vtkTransformFilter.h>
 #include <vtkRenderer.h>
 #include <vtkRenderWindow.h>
@@ -98,7 +98,7 @@ void MeshUtils::getPointCloudFromPLY(const std::string& filename, pcl::PointClou
     float x,y,z;
     int r,g,b,a;
     for(int i=0; i<nVertex; ++i){
-        f >> x >> y >> z >> r >> g >> b >> a;        
+        f >> x >> y >> z >> r >> g >> b >> a;
         pcl::PointXYZRGB p(r,g,b);
         p.x = x; p.y = y; p.z = z;
         obj_pc->points.push_back(p);
@@ -111,7 +111,7 @@ void MeshUtils::getPointCloudFromPLY(const std::string& filename, pcl::PointClou
         mean_x += x / (float)nVertex;
         mean_y += y / (float)nVertex;
         mean_z += z / (float)nVertex;
-    }   
+    }
 
     obj_pc->width = obj_pc->points.size();
     obj_pc->height = 1;
@@ -175,7 +175,7 @@ void MeshUtils::draw_hypotheses_boundingbox(const ObjectHypothesis &h, cv::Mat &
     pcl::transformPointCloud(*(object_bounding_boxes_[h.obj_id].pointcloud), bb_trans, h.rotmat);
     std::vector<cv::Point> bb_points(8);
     for(int i=0; i<8; ++i)
-        world_to_image_coords(bb_trans.points[i].x, bb_trans.points[i].y, bb_trans.points[i].z, bb_points[i].y, bb_points[i].x);   
+        world_to_image_coords(bb_trans.points[i].x, bb_trans.points[i].y, bb_trans.points[i].z, bb_points[i].y, bb_points[i].x);
 
     cv::line(rgb, bb_points[0], bb_points[1], color, line_width);
     cv::line(rgb, bb_points[0], bb_points[2], color, line_width);
@@ -324,7 +324,7 @@ inline void MeshUtils::extractEuclideanClustersSmooth(const typename pcl::PointC
       pcl::PointIndices r;
       r.indices.resize (seed_queue.size ());
       for (size_t j = 0; j < seed_queue.size (); ++j){
-        r.indices[j] = seed_queue[j];        
+        r.indices[j] = seed_queue[j];
         scene_indices_to_cluster_[r.indices[j]] = clusters.size();
       }
 
@@ -337,12 +337,13 @@ inline void MeshUtils::extractEuclideanClustersSmooth(const typename pcl::PointC
   }
 }
 
-DECLARE_bool(show_scene);
+//DEFINE_bool(show_scene);
 void MeshUtils::setScene(const cv::Mat &rgb, const cv::Mat &depth, float distance_threshold){
 
 
-    //create point cloud    
+    //create point cloud
     scene_cloud_.reset(new pcl::PointCloud<pcl::PointXYZRGB>());
+    
 
     scene_cloud_->height = rgb.rows;
     scene_cloud_->width  = rgb.cols;
@@ -354,16 +355,23 @@ void MeshUtils::setScene(const cv::Mat &rgb, const cv::Mat &depth, float distanc
             if(depth.at<unsigned short>(row, col) != 0 &&
                depth.at<unsigned short>(row, col) < distance_threshold){
 
-                float z = (float)depth.at<unsigned short>(row, col) / 1000.0f;
+                float z = (float)depth.at<ushort>(row, col) / 1000.0f;
                 float x = (col - cx_) * z / fx_;
                 float y = (row - cy_) * z / fy_;
+
                 pcl::PointXYZRGB p(rgb.at<cv::Vec3b>(row,col)[2],
                                    rgb.at<cv::Vec3b>(row,col)[1], rgb.at<cv::Vec3b>(row,col)[0]);
                 p.x = x; p.y = y; p.z = z;
-                scene_cloud_->at(col, row) = p;                
-            }
+                scene_cloud_->at(col, row) = p;
+           }
         }
     }
+
+//    cv::imshow("HI", rgb);
+    //Fill cloud somehow...
+
+    std::string writePath = "/home/yihernong/object_detector_6d/build/scene.ply";
+    pcl::io::savePLYFile(writePath, *scene_cloud_);
 
     //set images
     scene_rgb_ = rgb;
@@ -396,7 +404,7 @@ void MeshUtils::setScene(const cv::Mat &rgb, const cv::Mat &depth, float distanc
 
     //visualize clusters
 
-    if (FLAGS_show_scene) {
+    if (0) {
         srand(655);
         for(int i=0; i<scene_clusters_.size(); ++i){
             pcl::PointIndices ind = scene_clusters_[i];
@@ -458,6 +466,8 @@ void MeshUtils::icp(int obj_id, int row, int col, float z, float yaw, float pitc
     if(icp.hasConverged())
         rotmat = icp.getFinalTransformation() * rotmat;
 
+//    std::cout << rotmat << std::endl;
+
     if(obj_correct_up_vector_.count(obj_id))
         correctPose(rotmat);
 
@@ -477,7 +487,7 @@ void MeshUtils::renderObject(cv::Mat& rgb_out, int obj_id, int row, int col,
 
 
 void MeshUtils::renderObject(cv::Mat& rgb_out, int obj_id, float x, float y, float z, float yaw, float pitch, float roll, float alpha)
-{   
+{
 
     Eigen::Matrix4f rotmat = get_rotmat_from_yaw_pitch_roll(yaw, pitch, roll);
     //rotate rotmat (vtk camera) 180 degrees around X
@@ -501,7 +511,7 @@ void MeshUtils::renderObject(cv::Mat& rgb_out, int obj_id, float x, float y, flo
 void MeshUtils::renderObject(cv::Mat& rgb_out, int obj_id, const Eigen::Matrix4f &rotmat, float alpha){
 
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr obj_trans( new pcl::PointCloud<pcl::PointXYZRGB>() );
-    pcl::transformPointCloud(*(object_pointclouds_[obj_id]), *obj_trans, rotmat);    
+    pcl::transformPointCloud(*(object_pointclouds_[obj_id]), *obj_trans, rotmat);
 
     cv::Mat depthFromModel = cv::Mat::zeros(scene_depth_.rows, scene_depth_.cols, CV_32FC1);
 
@@ -517,7 +527,7 @@ void MeshUtils::renderObject(cv::Mat& rgb_out, int obj_id, const Eigen::Matrix4f
             if(point->z < (float)scene_depth_.at<unsigned short>(row,col)/1000.0f ||
                     scene_depth_.at<unsigned short>(row,col) == 0){
                 if(depthFromModel.at<float>(row,col) == 0 || depthFromModel.at<float>(row,col) > point->z){
-                    depthFromModel.at<float>(row,col) = point->z;                    
+                    depthFromModel.at<float>(row,col) = point->z;
                     float g = alpha + (1-alpha)*(float)rgb_out.at<cv::Vec3b>(row,col)[1]/255.0f;
                     rgb_out.at<cv::Vec3b>(row,col)[1] = (unsigned char) std::min((g*255.0f) + g, 255.0f);
                 }
@@ -633,7 +643,7 @@ bool MeshUtils::evaluate_hypothesis(ObjectHypothesis &h, float location_hough_sc
         return false;
 
     //transform object
-    pcl::PointCloud<pcl::PointXYZRGB>::Ptr obj_trans( new pcl::PointCloud<pcl::PointXYZRGB>() );    
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr obj_trans( new pcl::PointCloud<pcl::PointXYZRGB>() );
     pcl::transformPointCloud(*(object_pointclouds_downsampled_[h.obj_id]), *obj_trans, h.rotmat);
     pcl::PointCloud<pcl::Normal>::Ptr obj_normals_trans( new pcl::PointCloud<pcl::Normal>() );
     get_normals_not_nan(obj_trans, obj_normals_trans);
@@ -674,7 +684,7 @@ bool MeshUtils::evaluate_hypothesis(ObjectHypothesis &h, float location_hough_sc
         //in max_d range
 
         std::vector<int> nn_indices;
-        std::vector<float> nn_distances;       
+        std::vector<float> nn_distances;
         //search in radius
         if( scene_downsampled_tree_->radiusSearch(*cur_point, search_radius, nn_indices, nn_distances, std::numeric_limits<int>::max ()) ) {
 
@@ -694,14 +704,14 @@ bool MeshUtils::evaluate_hypothesis(ObjectHypothesis &h, float location_hough_sc
                                     cur_scene_normal->normal_y * cur_obj_normal->normal_y +
                                     cur_scene_normal->normal_z * cur_obj_normal->normal_z;
                 //make [-1,1] to [0,1]
-                normal_score = normal_score/2.0f + 0.5f;                
+                normal_score = normal_score/2.0f + 0.5f;
 
                 // other options are possible
                 if(!use_normal_similarity_)
                     normal_score = 1;
 
                 //color cost
-                pcl::PointXYZRGB *cur_scene_point = &(scene_cloud_downsampled_->points[nn_indices[nn]]);                
+                pcl::PointXYZRGB *cur_scene_point = &(scene_cloud_downsampled_->points[nn_indices[nn]]);
                 float color_score = std::max(fabs((float)cur_scene_point->r - (float)cur_point->r),
                                              fabs((float)cur_scene_point->g - (float)cur_point->g));
                 color_score = 1.0f - std::max((double)color_score,
@@ -728,7 +738,7 @@ bool MeshUtils::evaluate_hypothesis(ObjectHypothesis &h, float location_hough_sc
                     best_neighbor_score = neighbor_score;
                     neighbor_id = nn_indices[nn];
                 }
-                if(!scene_indices_visited[nn_indices[nn]]){                                        
+                if(!scene_indices_visited[nn_indices[nn]]){
                     if(scene_indices_to_cluster_.count(nn_indices[nn]))
                         scene_clusters_explained_pixels[scene_indices_to_cluster_[nn_indices[nn]]]++;
 
@@ -870,7 +880,7 @@ std::vector<int> MeshUtils::optimize_hypotheses_multi(std::vector<ObjectHypothes
     //of the same location of the same object with different pose.
     MutualExclusiveMap mutual_exclusive_hypotheses;
     for(int i=0; i<hypotheses.size(); ++i){
-        for(int j=i+1; j<hypotheses.size(); ++j){            
+        for(int j=i+1; j<hypotheses.size(); ++j){
 
             //first check if centers are far away
 
@@ -1016,7 +1026,7 @@ std::vector<int> MeshUtils::optimize_hypotheses_multi(std::vector<ObjectHypothes
 
             //store current solution
             std::vector<bool> best_solution_local(hypotheses_groups[g].size(), false);
-            float best_score_local = 0;            
+            float best_score_local = 0;
 
             #pragma omp for schedule(dynamic)
             for(int sol = 0; sol < solutions.size(); ++sol){
@@ -1049,7 +1059,7 @@ std::vector<int> MeshUtils::optimize_hypotheses_multi(std::vector<ObjectHypothes
                     avg_eval.clutter_score += hypotheses[hypotheses_groups[g][*h]].eval.clutter_score / (float)cur_hypotheses.size();
                     avg_eval.inliers_ratio += hypotheses[hypotheses_groups[g][*h]].eval.inliers_ratio / (float)cur_hypotheses.size();
                     avg_eval.similarity_score += hypotheses[hypotheses_groups[g][*h]].eval.similarity_score / (float)cur_hypotheses.size();
-                    avg_eval.visibility_ratio += hypotheses[hypotheses_groups[g][*h]].eval.visibility_ratio / (float)cur_hypotheses.size();                    
+                    avg_eval.visibility_ratio += hypotheses[hypotheses_groups[g][*h]].eval.visibility_ratio / (float)cur_hypotheses.size();
                     avg_eval.location_score += hypotheses[hypotheses_groups[g][*h]].eval.location_score / (float)cur_hypotheses.size();
                     avg_eval.pose_score += hypotheses[hypotheses_groups[g][*h]].eval.pose_score / (float)cur_hypotheses.size();
                 }
@@ -1142,7 +1152,7 @@ std::vector<int> MeshUtils::optimize_hypotheses_multi(std::vector<ObjectHypothes
         }   //omp parallel
 
         for(int i=0; i<best_solution.size(); ++i){
-            if(best_solution[i]){                
+            if(best_solution[i]){
                 result.push_back(hypotheses_groups[g][i]);
             }
         }
@@ -1244,5 +1254,3 @@ std::vector<int> MeshUtils::optimize_hypotheses(std::vector<ObjectHypothesis> &h
         return optimize_hypotheses_multi(hypotheses);
 
 }
-
-

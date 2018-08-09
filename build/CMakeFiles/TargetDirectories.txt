@@ -1,0 +1,7 @@
+/home/yihernong/object_detector_6d/build/CMakeFiles/edit_cache.dir
+/home/yihernong/object_detector_6d/build/CMakeFiles/rebuild_cache.dir
+/home/yihernong/object_detector_6d/build/CMakeFiles/Grabcut.dir
+/home/yihernong/object_detector_6d/build/CMakeFiles/surface_normals_generator.dir
+/home/yihernong/object_detector_6d/build/CMakeFiles/PatchGen.dir
+/home/yihernong/object_detector_6d/build/CMakeFiles/patch_extractor.dir
+/home/yihernong/object_detector_6d/build/CMakeFiles/HoughForest.dir

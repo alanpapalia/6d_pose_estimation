@@ -10,7 +10,7 @@
 
 #include <highgui.h>
 #include <opencv2/contrib/contrib.hpp>
-
+#include <unistd.h>
 
 #include <glog/logging.h>
 
@@ -67,7 +67,7 @@ Eigen::Vector3f HFTest::get_obj_center_vote_from_6dof(Eigen::VectorXf dof,
           0,  sin_roll,   cos_roll, 0,
           0,  0,          0,        1;
 
-    Eigen::Matrix4f rotmat = Rz * Ry * Rx;  
+    Eigen::Matrix4f rotmat = Rz * Ry * Rx;
 
 
     //rotate rotmat (vtk camera) 180 degrees around X
@@ -77,10 +77,10 @@ Eigen::Vector3f HFTest::get_obj_center_vote_from_6dof(Eigen::VectorXf dof,
                0, -1,  0, 0,
                0,  0, -1, 0,
                0,  0,  0, 1;
-    Eigen::Matrix4f xtion_rotmat = corrMat * rotmat;    
+    Eigen::Matrix4f xtion_rotmat = corrMat * rotmat;
 
     //put current patch as center of the world
-    float z = (float)depth / 1000.0f;
+    float z = (float)depth / 1000.0;
     float x = ((float)patch_x - cx_)*z/fx_;
     float y = ((float)patch_y - cy_)*z/fy_;
     xtion_rotmat(0, 3) = x;
@@ -168,10 +168,10 @@ void HFTest::detect(const std::vector<float> &test_vec,
                     int patch_y,
                     unsigned short depth,
                     std::vector<float> &res,
-                    std::vector<cv::Mat> &obj_center_hough_2d,                    
+                    std::vector<cv::Mat> &obj_center_hough_2d,
                     std::vector<VotesToNodeMap> &center_leaf_map,
                     const DetectorOptions::Options &detect_options)
-{    
+{
 
     res.resize(number_of_classes_, 0.0f);
     for(int t=0; t<trees_.size(); ++t){
@@ -279,6 +279,27 @@ void HFTest::get_leaf_map(TreeNode* n, LeafMap &leaf_map){
 
 }
 
+bool similarPoses(
+    const Eigen::Affine3f& pose1, 
+    const Eigen::Affine3f& pose2,
+    const float translation_threshold,
+    const float rotation_threshold) {
+
+    // Translation difference.
+    float position_diff = (pose1.translation() - pose2.translation()).norm();
+    
+    // Rotation angle difference.
+    Eigen::AngleAxisf diff_rotat(pose1.rotation().inverse() * pose2.rotation());
+    float rotation_diff = fabsf(diff_rotat.angle());
+
+    std::cout << "Translational difference : " << position_diff << std::endl;
+    std::cout << "Rotational difference : " << rotation_diff << std::endl;
+
+
+    return position_diff < translation_threshold &&
+           rotation_diff < rotation_threshold;
+}
+
 
 
 float HFTest::get_cam_dist(const Eigen::Vector3f &cam1, const Eigen::Vector3f &cam2){
@@ -295,11 +316,11 @@ float HFTest::get_cam_dist(const Eigen::Vector3f &cam1, const Eigen::Vector3f &c
 DECLARE_bool(visualize_hypotheses);
 std::vector<MeshUtils::ObjectHypothesis> HFTest::test_image(cv::Mat& rgb,  cv::Mat& depth,
              const DetectorOptions::Options &detect_options, MeshUtils &mesh_utils,
-             bool generate_random_values, float patch_distance_threshold)
+             bool generate_random_values, float patch_distance_threshold, std::vector<Eigen::Affine3f>* poseHistory)
 {
 
 
-    ///////// GETTING HOUGH MAPS ///////////   
+    ///////// GETTING HOUGH MAPS ///////////
 
 
     int batch_size = batch_size_caffe_;
@@ -315,7 +336,7 @@ std::vector<MeshUtils::ObjectHypothesis> HFTest::test_image(cv::Mat& rgb,  cv::M
     CHECK_GT(caffe_model_weights_filename_.size(), 0) << "No caffe weights model defined.";
     //caffe::Caffe::set_phase(caffe::Caffe::TEST);  // used with previous version of Caffe
     caffe::Net<float> caffe_net(caffe_model_definition_filename_, caffe::TEST);
-    caffe_net.CopyTrainedLayersFrom(caffe_model_weights_filename_);   
+    caffe_net.CopyTrainedLayersFrom(caffe_model_weights_filename_);
 
 
 
@@ -410,7 +431,7 @@ std::vector<MeshUtils::ObjectHypothesis> HFTest::test_image(cv::Mat& rgb,  cv::M
     Eigen::MatrixXi patch_classes(rgb.rows, rgb.cols);
     for(int i=0; i<rgb.rows; ++i)
         for(int j=0; j<rgb.cols; ++j)
-            patch_classes(i, j) = -1;    
+            patch_classes(i, j) = -1;
 
     //houghmap for every class
     std::vector<cv::Mat> class_hough_centers(number_of_classes_);
@@ -426,7 +447,7 @@ std::vector<MeshUtils::ObjectHypothesis> HFTest::test_image(cv::Mat& rgb,  cv::M
     int num_patches = patches.size() / patch_size_in_voxels_ / patch_size_in_voxels_ / 4;
     std::cout << "Number of patches: " << num_patches << std::endl;
 
-    //batch input in caffe network    
+    //batch input in caffe network
     //TODO
     //We may loose some patches in the end if the last
     //batch is incomplete
@@ -497,7 +518,7 @@ std::vector<MeshUtils::ObjectHypothesis> HFTest::test_image(cv::Mat& rgb,  cv::M
 
  //LOCAL NORMALIZATION
 
-        std::vector<float> float_data;        
+        std::vector<float> float_data;
         for(int i=0; i<batch_size; ++i){
 
             //get mean
@@ -599,7 +620,7 @@ std::vector<MeshUtils::ObjectHypothesis> HFTest::test_image(cv::Mat& rgb,  cv::M
 
         omp_set_num_threads(num_threads_);
         #pragma omp parallel
-        {           
+        {
 
             //houghmap for every class
             std::vector<cv::Mat> class_hough_centers_local(number_of_classes_);
@@ -610,14 +631,14 @@ std::vector<MeshUtils::ObjectHypothesis> HFTest::test_image(cv::Mat& rgb,  cv::M
             std::vector<VotesToNodeMap> center_leaf_map_local(number_of_classes_);
 
             #pragma omp for schedule(dynamic)
-            for(int i=0; i<batch_size; ++i){                                                
+            for(int i=0; i<batch_size; ++i){
 
                 //get output of net for each patch of the batch
                 std::vector<float> test_vec(feature_vector_length);
 
 
                 for(int f=0; f<feature_vector_length; ++f)
-                    test_vec[f] = output_blob[0]->data_at(i, f, 0, 0);                    
+                    test_vec[f] = output_blob[0]->data_at(i, f, 0, 0);
 
                 int patch_idx = b * batch_size + i;
                 int patch_x = patches_loc[2*patch_idx];
@@ -649,7 +670,7 @@ std::vector<MeshUtils::ObjectHypothesis> HFTest::test_image(cv::Mat& rgb,  cv::M
                     for(VotesToNodeMap::iterator it=center_leaf_map_local[c].begin(); it!=center_leaf_map_local[c].end(); ++it){
                         center_leaf_map[c][it->first].insert(center_leaf_map[c][it->first].end(), it->second.begin(), it->second.end());
                     }
-                }                
+                }
 
             }
 
@@ -679,7 +700,7 @@ std::vector<MeshUtils::ObjectHypothesis> HFTest::test_image(cv::Mat& rgb,  cv::M
 
 
     //----Get hough maps of the object centers----
-    //for each center make a hough voting for the pose   
+    //for each center make a hough voting for the pose
 
     int centers_blur_size = centers_blur_size_;
     int centers_maxsupression_wsize = centers_maxsupression_wsize_;
@@ -696,7 +717,7 @@ std::vector<MeshUtils::ObjectHypothesis> HFTest::test_image(cv::Mat& rgb,  cv::M
 
         std::cout << "Generating Hypotheses for class: " <<
                      detect_options.object_options(c).name() << std::endl;
-        double obj_class_exec_time = omp_get_wtime();        
+        double obj_class_exec_time = omp_get_wtime();
 
         //blur centers votes to mix up
         cv::blur(class_hough_centers[c], class_hough_centers[c], cv::Size(centers_blur_size, centers_blur_size));
@@ -706,7 +727,7 @@ std::vector<MeshUtils::ObjectHypothesis> HFTest::test_image(cv::Mat& rgb,  cv::M
         non_max_suppression(class_hough_centers[c], centers_hypotheses,
                             cv::Size2i(centers_maxsupression_wsize, centers_maxsupression_wsize));
 
-        //for each center hypothesis find pose        
+        //for each center hypothesis find pose
         int max_loc_h = std::min(detect_options.object_options(c).max_location_hypotheses(),
                                  (int)centers_hypotheses.size());
         std::cout << "max locations: " << max_loc_h << std::endl;
@@ -737,13 +758,13 @@ std::vector<MeshUtils::ObjectHypothesis> HFTest::test_image(cv::Mat& rgb,  cv::M
 
 
                 //search inside a window of centers_maxsupression_wsize
-                //to find mean z                
+                //to find mean z
 
                 float mode_z = 0;
                 float z_bin_size = 0.01f; // bin size of z quantization
                 float max_z = 3.0f; // max z limit for centers
                 int z_maxsuppression_wsize = 20;
-                cv::Mat houghmap_z( (int)(max_z/z_bin_size), 1, CV_32FC1, cv::Scalar(0));                
+                cv::Mat houghmap_z( (int)(max_z/z_bin_size), 1, CV_32FC1, cv::Scalar(0));
 
                 //get 3D hough votes for pose
                 //currently commended because 2d pose voting worked a bit better
@@ -769,11 +790,11 @@ std::vector<MeshUtils::ObjectHypothesis> HFTest::test_image(cv::Mat& rgb,  cv::M
                                 for(int p=0; p<(*cur_votes)[v]->hough_votes[c].size(); ++p){
                                     if(depth.at<unsigned short>(row,col) != 0){
                                         Eigen::Vector3f obj_center = get_obj_center_vote_from_6dof((*cur_votes)[v]->hough_votes[c][p],
-                                                                                                   col, row, depth.at<unsigned short>(row,col));                                        
+                                                                                                   col, row, depth.at<unsigned short>(row,col));
                                         int z_bin = obj_center(2) / z_bin_size;
                                         if(z_bin < houghmap_z.rows && z_bin >= 0)
                                             houghmap_z.at<float>(z_bin) += (*cur_votes)[v]->class_prob[c];
-                                    }                                    
+                                    }
 
                                     //2d pose voting in yaw-pitch, quantize to degrees
                                     int yaw   = (*cur_votes)[v]->hough_votes[c][p](0) / M_PI * 180.0f;
@@ -794,22 +815,22 @@ std::vector<MeshUtils::ObjectHypothesis> HFTest::test_image(cv::Mat& rgb,  cv::M
                                                 roll_nodemap[roll_hp].push_back((*cur_votes)[v]);
                                             }
                                         }
-                                    }                                    
+                                    }
                                 }
                             }
                         }
                     }
-                }                
+                }
                 std::vector<MapHypothesis> z_hypotheses;
                 non_max_suppression(houghmap_z, z_hypotheses, cv::Size2i(1, z_maxsuppression_wsize));
                 if(z_hypotheses.size() != 0){
                     cv::Point best_z = z_hypotheses[0].second;
                     mode_z = best_z.y * z_bin_size;
-                }                
+                }
                 else{
                     //No hypothesis for z found ...
                     continue;
-                }               
+                }
 
 
                 //-----pose hypotheses 2d
@@ -921,9 +942,9 @@ std::vector<MeshUtils::ObjectHypothesis> HFTest::test_image(cv::Mat& rgb,  cv::M
                         if(h_roll == 0 || acos(dot)/M_PI*180.0f > 7){
                             float yaw = (float)(cur_yawpitch.y - 360) / 180.0f * M_PI; //yaw
                             float pitch = (float)(cur_yawpitch.x - 360) / 180.0f * M_PI; //pitch
-                            float roll = (float)(roll_p.y - 360) / 180.0f * M_PI; //roll                            
+                            float roll = (float)(roll_p.y - 360) / 180.0f * M_PI; //roll
 
-                            Eigen::Matrix4f rotmat;                            
+                            Eigen::Matrix4f rotmat;
                             mesh_utils.icp(c, cur_center.y, cur_center.x, mode_z, yaw, pitch, roll,
                                            rotmat, detect_options.object_options(c).icp_iterations());
 
@@ -953,14 +974,18 @@ std::vector<MeshUtils::ObjectHypothesis> HFTest::test_image(cv::Mat& rgb,  cv::M
                                         while(cv::waitKey(30) == -1)
                                             cv::imshow("hypothesis visualization", rgb_rendered);
                                     } else {
-					std::cout << "Not showing hypothesis due to high clutter score" << std::endl;
-				    }
+                    std::cout << "Not showing hypothesis due to high clutter score" << std::endl;
+                    }
                                 }
-
-                                //threshold hypothesis                                
-                                if(accepted)
-                                    object_hypotheses_local.push_back(h);
-                            }                            
+                                Eigen::Affine3f transformCandidate = Eigen::Affine3f::Identity();
+                                transformCandidate.matrix() = h.rotmat;
+                                //threshold hypothesis
+                                if(accepted && poseHistory->size() == 0)
+                                object_hypotheses_local.push_back(h);
+                            
+                                else if(accepted && similarPoses(poseHistory->at(poseHistory->size()-1), transformCandidate, 0.03, 0.52))
+                                object_hypotheses_local.push_back(h);
+                            }
 
                             prev_h_roll = roll_p.y;
                             h_roll++;
@@ -975,8 +1000,8 @@ std::vector<MeshUtils::ObjectHypothesis> HFTest::test_image(cv::Mat& rgb,  cv::M
             } // center locations hypotheses parallel for iteration
 
             #pragma omp critical
-            {                
-                object_hypotheses.insert(object_hypotheses.end(), object_hypotheses_local.begin(), object_hypotheses_local.end());                
+            {
+                object_hypotheses.insert(object_hypotheses.end(), object_hypotheses_local.begin(), object_hypotheses_local.end());
             }
 
         } //parallel section of center hyotheses
@@ -988,12 +1013,19 @@ std::vector<MeshUtils::ObjectHypothesis> HFTest::test_image(cv::Mat& rgb,  cv::M
 
 
     std::sort(object_hypotheses.begin(), object_hypotheses.end(), hcomparator);
+
     std::vector<int> solution = mesh_utils.optimize_hypotheses(object_hypotheses);
     std::vector<MeshUtils::ObjectHypothesis> best_h;
+    std::cout << "History" << poseHistory->size() << std::endl;
     for(int i=0; i<solution.size(); ++i)
+    {
         best_h.push_back(object_hypotheses[solution[i]]);
-
-
+        Eigen::Affine3f chosenTransform = Eigen::Affine3f::Identity();
+        //chosenTransform.translation = new Vector3i(best_h[i].rotmat(0,3), best_h[i].rotmat(1,3), best_h[i].rotmat(2,3))
+        chosenTransform.matrix() = best_h[i].rotmat;
+        poseHistory->push_back(chosenTransform);
+    }
+    std::cout << "History" << poseHistory->size() << std::endl;
 
     //visualize hough maps
 //    for(int c=0; c<detect_options.object_options_size(); c++) {
@@ -1191,6 +1223,8 @@ void HFTest::DetectObjects() {
     if (output_folder.size() > 0 && output_folder[output_folder.size()-1] != '/')
         output_folder.push_back('/');
 
+    std::vector<Eigen::Affine3f>* poseHistory = new std::vector<Eigen::Affine3f>();
+
     setBatchSizeCaffe(detect_options.batch_size());
     setCameraIntrinsics(
                 detect_options.fx(),
@@ -1243,12 +1277,35 @@ void HFTest::DetectObjects() {
             cout << "Cannot read file: " << rgb_fname << std::endl;
             continue;
         }
+          std::ifstream depth_file;
+          depth_file.open(depth_fname.c_str());
+          int width, height;
+       //  depth_file >> width;
+    //      depth_file >> height;
+      //    depth_file.clear();
+      //    
+        height = 480;
+        width = 640;
 
-        cv::Mat depth = cv::imread(depth_fname, CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR);
-        if(depth.empty()) {
-            cout << "Cannot read file: " << depth_fname << std::endl;
-            continue;
-        }
+          double x;
+  //      cv::Mat depth = cv::imread(depth_fname, CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR);
+  //      depth.convertTo(depth, CV_16UC1);
+
+        cv::Mat depth = cv::Mat::zeros(height, width, CV_16U);
+        cv::Mat depthDeb = cv::Mat::zeros(height, width, CV_16UC1);
+
+        int col, row;
+        int count = 0;
+                  for(row=0; row<rgb.rows; ++row){
+        for(col=0; col<rgb.cols; ++col){
+          depth_file >> x;
+          depth.at<ushort>(row, col) = x * 1000.0f;
+          count += 1;
+
+    }
+  }
+  std::cout << col << " " << row << " " << count << std::endl;
+
 
         cv::Mat rgb_res;
         rgb.copyTo(rgb_res);
@@ -1256,24 +1313,24 @@ void HFTest::DetectObjects() {
         mesh_utils.setScene(rgb, depth, detect_options.distance_threshold());
         std::vector<MeshUtils::ObjectHypothesis> h_vec = test_image(
                     rgb, depth, detect_options, mesh_utils, use_random_values_in_patches,
-                    detect_options.distance_threshold());
+                    detect_options.distance_threshold(), poseHistory);
 
         std::sort(h_vec.begin() ,h_vec.end(), hcomparator_fs);
         std::vector<int> hcounter(detect_options.object_options_size(), 0);
 
-	std::string out_name = GetOutName(rgb_fname);
+    std::string out_name = GetOutName(rgb_fname);
         std::string out_fname = output_folder + out_name + "_res.txt";
         std::ofstream fout(out_fname.c_str());
         CHECK(fout) << "Cannot write to output file " << out_fname;
-	std::cout << "Writing info to: " << out_fname << std::endl;
-	int total_found = 0;
+    std::cout << "Writing info to: " << out_fname << std::endl;
+    int total_found = 0;
         for(int h=0; h<h_vec.size(); ++h){
             int obj_id = h_vec[h].obj_id;
             if(hcounter[obj_id] < detect_options.object_options(obj_id).instances()) {
                 hcounter[obj_id]++;
-		total_found++;
+        total_found++;
                 fout << detect_options.object_options(obj_id).name() << "(" << hcounter[obj_id] << ")" << ": " << std::endl;
-		/* for debugging
+        /* for debugging
                 fout << "---------" << std::endl;
                 fout << "clutter score: " << h_vec[h].eval.clutter_score << std::endl;
                 fout << "similarity score: " << h_vec[h].eval.similarity_score << std::endl;
@@ -1282,15 +1339,15 @@ void HFTest::DetectObjects() {
                 fout << "location score: " << h_vec[h].eval.location_score << std::endl;
                 fout << "pose score: " << h_vec[h].eval.pose_score << std::endl;
                 fout << "final score: " << h_vec[h].eval.final_score << std::endl;
-		*/
-		fout << h_vec[h].rotmat << std::endl;
+        */
+        fout << h_vec[h].rotmat << std::endl;
                 // TODO
                 // provide the ground truth to measure the error correctly.
                 // fout << "ground truth error : " << h_vec[h].eval.ground_truth_error << std::endl;
                 fout << std::endl;
 
-		//TODO
-		//implement the alignment functionality
+        //TODO
+        //implement the alignment functionality
                 //if(mesh_utils.is_plane_detected() &&
                 // detect_options.object_options(obj_id).align_z_axis())
                 //   correctPose(h_vec[h].rotmat, mesh_utils.getUpVector());
@@ -1303,14 +1360,12 @@ void HFTest::DetectObjects() {
 
             }
         }
-	std::string rgb_out_fname = output_folder + out_name + "_res.png";
-	std::cout << "Writing result image to: " << rgb_out_fname << std::endl;
+    std::string rgb_out_fname = output_folder + out_name + "_res.png";
+    std::cout << "Writing result image to: " << rgb_out_fname << std::endl;
         cv::imwrite(rgb_out_fname, rgb_res);
 
         fout.close();
-	std::cout << "Detection finished. Total objects found: " << total_found << std::endl;
+    std::cout << "Detection finished. Total objects found: " << total_found << std::endl;
     }
 
 }
-
-

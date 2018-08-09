@@ -113,7 +113,7 @@ public:
 
     std::vector<MeshUtils::ObjectHypothesis> test_image(cv::Mat& rgb,  cv::Mat& depth,
                  const DetectorOptions::Options &detect_options, MeshUtils &mesh_utils,
-                 bool generate_random_values, float patch_distance_threshold);
+                 bool generate_random_values, float patch_distance_threshold, std::vector<Eigen::Affine3f> *poseHistory);
 
     void DetectObjects();
 

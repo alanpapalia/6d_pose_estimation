@@ -9,7 +9,9 @@
 #include <patch_generator.h>
 #include <train_patch_generator.h>
 
+#include "opencv2/opencv.hpp"
 
+using namespace cv;
 using namespace std;
 
 DEFINE_bool(render, false, "Render Viewpoints (input=PLY file, output=Output Folder");
@@ -51,6 +53,46 @@ DEFINE_double(object_radius, -1.0, "Define another radius rather than the one de
 
 int main(int argc, char** argv)
 {
+
+    // Added here- Alan
+    // Mat image;
+    // image= cv::imread("~/Desktop/frame115.jpg");
+
+    // // define bounding rectangle 
+    // cv::Rect rectangle(50,70,image.cols-150,image.rows-180);
+
+    // cv::Mat result; // segmentation result (4 possible values)
+    // cv::Mat bgModel,fgModel; // the models (internally used)
+
+    // // GrabCut segmentation
+    // cv::grabCut(image,    // input image
+    //                 result,   // segmentation result
+    //                         rectangle,// rectangle containing foreground 
+    //                         bgModel,fgModel, // models
+    //                         1,        // number of iterations
+    //                         cv::GC_INIT_WITH_RECT); // use rectangle
+    // cout << "oks pa dito" <<endl;
+    // // Get the pixels marked as likely foreground
+    // cv::compare(result,cv::GC_PR_FGD,result,cv::CMP_EQ);
+    // // Generate output image
+    // cv::Mat foreground(image.size(),CV_8UC3,cv::Scalar(255,255,255));
+    // image.copyTo(foreground,result); // bg pixels not copied
+
+    // // draw rectangle on original image
+    // cv::rectangle(image, rectangle, cv::Scalar(255,255,255),1);
+    // cv::namedWindow("Image");
+    // cv::imshow("Image",image);
+
+    // // display result
+    // cv::namedWindow("Segmented Image");
+    // cv::imshow("Segmented Image",foreground);
+
+
+    // waitKey();
+    // return 0;
+
+    // End Added here - Alan
+
     google::InitGoogleLogging(argv[0]);
 
     #ifndef GFLAGS_GFLAGS_H_

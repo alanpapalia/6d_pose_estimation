@@ -9,7 +9,7 @@ find_package(Glog REQUIRED)
 find_package(GFlags REQUIRED)
 find_package(OpenMP REQUIRED)
 find_package(Boost REQUIRED)
-find_package(OpenCV 2.4.10 REQUIRED)
+find_package(OpenCV 2.4.11 REQUIRED)
 find_package(PCL REQUIRED)
 find_package(VTK 5.10 REQUIRED)
 find_package(CUDA REQUIRED)
@@ -19,6 +19,9 @@ find_package(Caffe REQUIRED)
 
 set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+set(Caffe_DIR ~/caffe/build)
+set(Caffe_INCLUDE_DIR /usr/local/cuda-8.0/targets/x86_64-linux/include)
+set(Caffe_LIBS ~/caffe/build/lib/libcaffe.so)
 
 aux_source_directory(./PatchGen/src SRC_PATCHGEN)
 aux_source_directory(./HoughForest/src SRC_HOUGHFOREST)
@@ -52,6 +55,9 @@ include_directories(
     ${CUDA_INCLUDE_DIRECTORIES}
     ${PROTOBUF_INCLUDE_DIR}
     ${Caffe_INCLUDE_DIR}
+        ~/caffe/build/include
+            ~/caffe/include
+
 )
 
 CUDA_ADD_LIBRARY(surface_normals_generator PatchGen/src/cuda/surface_normals.cu PatchGen/src/cuda/cuda_utils.cu SHARED)
@@ -65,6 +71,21 @@ link_directories(
 
 add_executable(PatchGen ${SRC_PATCHGEN} ${INCLUDE_LIST})
 add_executable(HoughForest ${SRC_HOUGHFOREST} ${INCLUDE_LIST})
+add_executable(Grabcut grabcut.cpp ${INCLUDE_LIST})
+
+target_link_libraries(Grabcut
+    ${VTK_LIBRARIES}
+    ${OpenCV_LIBS}
+    ${BOOST_LIBRARIES}
+    gflags
+    glog
+    lmdb
+    ${PROTOBUF_LIBRARIES}
+    cuda
+    patch_extractor
+    surface_normals_generator
+    ${Caffe_LIBS}
+)
 
 target_link_libraries(PatchGen
     ${VTK_LIBRARIES}
@@ -94,6 +115,3 @@ target_link_libraries(HoughForest
     ${Caffe_LIBS}
     protobuf
 )
-
-
-

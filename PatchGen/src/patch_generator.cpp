@@ -17,6 +17,8 @@ data: floats: Channel  x  voxels  x  voxels (different from bin file)
 #include <glog/logging.h>
 #include <boost/algorithm/string.hpp>
 
+// #include <opencv2\core\core.hpp>
+// #include <opencv\cv.hpp>
 
 //yaw pitch roll --> rads!
 void patch_generator::get_yaw_pitch_roll_from_rot_mat(const Eigen::Matrix4f &rot_mat, float &yaw,

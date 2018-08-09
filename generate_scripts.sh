@@ -5,7 +5,7 @@
 ##################
 # define paths for the binaries
 OBJ_DETECTOR_PATH=$(pwd)/build
-CAFFE_BINARY=$HOME/apps/caffe-master/build/tools/caffe
+CAFFE_BINARY=$HOME/caffe/build/tools/caffe
 
 # define the folder with the meshes (.ply)
 MESH_FOLDER=meshes
@@ -19,7 +19,7 @@ MESH_FOLDER=meshes
 ###################
 # first distance from camera. 0.6 is the closest
 # you can get with Xtion
-RENDER_START_HEIGHT=0.6
+RENDER_START_HEIGHT=0.875
 # maximum number of different distance from the camera
 # to render the object
 RENDER_NUM_HEIGHTS=2
@@ -29,7 +29,7 @@ RENDER_HEIGHT_STEP=0.2
 # gets brighter
 RENDER_LIGHTINGS=1
 # number of camera rotations in each position on the sphere
-RENDER_IN_PLACE_CAM_ROT=18
+RENDER_IN_PLACE_CAM_ROT=36
 # We assume the objects are standing along the Z axis in their
 # natural position. Set to true only if you expect the objects 
 # to be sitting upfront. You can change it later in render.sh
@@ -44,10 +44,10 @@ PATCH_SIZE=8
 # each cell is VOXEL_SIZE meters. 
 # the actual length of the side of the patch is PATCH_SIZE*VOXEL_SIZE
 # be careful not to exceed object dimensions
-VOXEL_SIZE=0.005
+VOXEL_SIZE=0.01
 # max distance from the center of patch to include in the patch
 # usually set to the max radius of biggest object
-MAX_DEPTH_RANGE=0.25
+MAX_DEPTH_RANGE=0.15
 # stride in pixels
 STRIDE_IN_TRAIN=2
 STRIDE_IN_TEST=2
@@ -64,7 +64,7 @@ GPU_DEVICE=0
 #### CAFFE #####
 ################
 # Should match with the caffe_solver.prototxt
-ITERATIONS=100000
+ITERATIONS=200000
 # Batch size
 BATCH_SIZE=100
 # for more options edit the caffe_solver.prototxt
@@ -84,17 +84,17 @@ PARALLEL_TREES=1
 # Number of threads in testing
 THREADS_IN_TEST=8
 # Number of trees to train (use a multiple of PARALLEL_TREES)
-NTREES=4
+NTREES=8
 
 
 ################################
 ##### MORE TESTING OPTIONS #####
 ################################
 # Camera Intrinsics
-FX=575
-FY=575
-CX=319.5
-CY=239.5
+FX=576.9930419921875
+FY=576.9930419921875
+CX=328.72265625
+CY=238.74246215820312
 # For more options, open the generated proto file
 # in the test folder. For details about the options
 # see the documentation of GitHub or the definition
@@ -572,15 +572,15 @@ distance_threshold: 1.5
 are_objects_segmented: $ARE_OBJECTS_SEGMENTED \n" >> detector_options.proto
 cd ..
 
-if [ "$1" == "run" ]; then
-  echo "running scripts.."
-  cd $TRAIN_FOLDER
-  bash render.sh
-  bash extract_patches_caffe.sh
-  bash extract_patches_full.sh
-  bash train_caffe.sh
-  bash create_train_patches.sh
-  bash train_forest.sh
-  cd ..
-fi
+# if [ "$1" == "run" ]; then
+echo "running scripts.."
+cd $TRAIN_FOLDER
+bash render.sh
+bash extract_patches_caffe.sh
+bash extract_patches_full.sh
+bash train_caffe.sh
+bash create_train_patches.sh
+bash train_forest.sh
+cd ..
+# fi
 

@@ -22,7 +22,9 @@
 #include <vtkWindowToImageFilter.h>
 #include <vtkPNGWriter.h>
 #include "vtkProperty.h"
-
+// #include <opencv2\highgui\highgui.hpp>
+// #include <opencv2\core\core.hpp>
+// #include <opencv\cv.hpp>
 #include <cv.h>
 #include <highgui.h>
 

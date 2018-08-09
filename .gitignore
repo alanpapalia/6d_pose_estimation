@@ -33,4 +33,4 @@
 *.out
 *.appd
 
-./training*
+*training*

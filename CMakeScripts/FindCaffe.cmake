@@ -10,5 +10,8 @@ find_library(Caffe_LIBS NAMES caffe
   /usr/local/lib)
 
 if(Caffe_LIBS AND Caffe_INCLUDE_DIR)
+    message(STATUS FuckCAFFE)
     set(Caffe_FOUND 1)
 endif()
+
+message(STATUS FuckCAFFE)

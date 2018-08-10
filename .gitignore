@@ -34,8 +34,8 @@
 *.appd
 
 # training data
-training*/patches_caffe_p8_v0*/*
-training*/patches_full_p8_v0*/*
+# training*/patches_caffe_p8_v0*/*
+training*/patches_full*/*
 training*/renderings/*
 
 # local build files

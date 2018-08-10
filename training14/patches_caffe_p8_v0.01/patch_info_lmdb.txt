@@ -1,0 +1,6 @@
+Patch size in voxels: 8
+Voxel size in m: 0.01
+Stride in pixels: 2
+Max Depth Range: 0.15
+Patches for mustard_bottle: 244298
+Total patches: 244298

@@ -1,0 +1,2 @@
+# generate patches for autoencoder training
+/home/yihernong/object_detector_6d/build/PatchGen --genpatches --lmdb --input=renderings/mustard_bottle --voxel_size=0.01 --patch_size=8 --max_depth_range_in_m=0.15 --stride=2 --output=patches_full_p8_v0.01

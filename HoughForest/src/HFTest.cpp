@@ -18,6 +18,10 @@
 
 #include <caffe/proto/caffe.pb.h>
 
+using namespace cv;
+using namespace std;
+
+
 // Takes color image, depth image, bounding box coords
 // Masks over color and depth images based on segmentation
 void GrabCutSegmentation(cv::Mat& rgb, cv::Mat& depth, int xPix, int yPix, int xLen, int yLen)
@@ -51,16 +55,20 @@ void GrabCutSegmentation(cv::Mat& rgb, cv::Mat& depth, int xPix, int yPix, int x
     cv::namedWindow("Image");
     cv::imshow("Image", rgb);
 
-    cv::namedWindow("Test");
-    cv::imshow("Test", t);
+    foregroundCol.copyTo(rgb);
+    foregroundDep.copyTo(depth);
 
-    // display result
+    // display results and wait for keypress to continue
     cv::namedWindow("SegmentedColorImage");
-    cv::imshow("SegmentedColorImage", foregroundCol);
+    cv::imshow("SegmentedColorImage", rgb);
     cv::namedWindow("SegmentedDepthImage");
-    cv::imshow("SegmentedDepthImage", foregroundDep);
+    cv::imshow("SegmentedDepthImage", depth);
 
-    waitKey();
+    waitKey(50);
+
+    destroyWindow("Image");
+    destroyWindow("SegmentedColorImage");
+    destroyWindow("SegmentedDepthImage");
 }
 
 //3D point in xtion's camera frame, to 2d image coordinates
@@ -343,7 +351,7 @@ bool similarPoses(
 
 
     return position_diff < translation_threshold &&
-           rotation_diff < rotation_threshold;
+           (rotation_diff < rotation_threshold || rotation_diff > 3.0) ;
 }
 
 
@@ -1353,8 +1361,8 @@ void HFTest::DetectObjects() {
         std::cout << col << " " << row << " " << count << std::endl;
 
         // Color, depth, bounding box coords (xStart, yStart, xLen, yLen)
-        GrabCutSegmentation(*rgb, *depth, 300, 100, 150, 200); 
-        
+        GrabCutSegmentation(rgb, depth, 300, 100, 150, 200); 
+
         cv::Mat rgb_res;
         rgb.copyTo(rgb_res);
 

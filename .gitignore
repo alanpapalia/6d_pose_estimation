@@ -34,7 +34,7 @@
 *.appd
 
 # training data
-*training*
+**training*
 
 # local build files
-*build*
+**build

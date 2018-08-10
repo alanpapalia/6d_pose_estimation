@@ -1,15 +1,15 @@
 object_options {
 name: "mustard_bottle"
-mesh_file: "/home/yihernong/object_detector_6d/meshes/mustard_bottle.ply"
+mesh_file: "/home/yihernong/pose_estimation_pipeline/6d_pose_estimation/meshes/mustard_bottle.ply"
 instances: 1
 nn_search_radius:0.015
 icp_iterations: 60
 max_location_hypotheses: 12
 should_detect: true
 }
-caffe_definition: "/home/yihernong/object_detector_6d/training13/patch_autoencoder_half.prototxt"
-caffe_weights: "/home/yihernong/object_detector_6d/training13/autoencoder_iter_200000.caffemodel"
-forest_folder: "/home/yihernong/object_detector_6d/training13/forest"
+caffe_definition: "/home/yihernong/pose_estimation_pipeline/6d_pose_estimation/training13/patch_autoencoder_half.prototxt"
+caffe_weights: "/home/yihernong/pose_estimation_pipeline/6d_pose_estimation/training13/autoencoder_iter_200000.caffemodel"
+forest_folder: "/home/yihernong/pose_estimation_pipeline/6d_pose_estimation/training13/forest"
 num_threads: 8
 stride: 2
 max_depth_range_in_patch_in_m: 0.15

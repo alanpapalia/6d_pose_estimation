@@ -7,9 +7,9 @@ icp_iterations: 60
 max_location_hypotheses: 12
 should_detect: true
 }
-caffe_definition: "/home/yihernong/pose_estimation_pipeline/6d_pose_estimation/training14/patch_autoencoder_half.prototxt"
-caffe_weights: "/home/yihernong/pose_estimation_pipeline/6d_pose_estimation/training14/autoencoder_iter_200000.caffemodel"
-forest_folder: "/home/yihernong/pose_estimation_pipeline/6d_pose_estimation/training14/forest"
+caffe_definition: "/home/yihernong/pose_estimation_pipeline/6d_pose_estimation/training/patch_autoencoder_half.prototxt"
+caffe_weights: "/home/yihernong/pose_estimation_pipeline/6d_pose_estimation/training/autoencoder_iter_200000.caffemodel"
+forest_folder: "/home/yihernong/pose_estimation_pipeline/6d_pose_estimation/training/forest"
 num_threads: 8
 stride: 2
 max_depth_range_in_patch_in_m: 0.15

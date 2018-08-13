@@ -1276,6 +1276,7 @@ void HFTest::DetectObjects() {
         output_folder.push_back('/');
 
     std::vector<Eigen::Affine3f>* poseHistory = new std::vector<Eigen::Affine3f>();
+    // Eigen::Affine3f basePose = Alan continue here
 
     setBatchSizeCaffe(detect_options.batch_size());
     setCameraIntrinsics(

@@ -22,19 +22,19 @@ MESH_FOLDER=meshes
 RENDER_START_HEIGHT=0.875
 # maximum number of different distance from the camera
 # to render the object
-RENDER_NUM_HEIGHTS=2
+RENDER_NUM_HEIGHTS=3
 # difference between each distance
 RENDER_HEIGHT_STEP=0.2
 # simulate brightness, in each lighting the image
 # gets brighter
-RENDER_LIGHTINGS=1
+RENDER_LIGHTINGS=2
 # number of camera rotations in each position on the sphere
 RENDER_IN_PLACE_CAM_ROT=36
 # We assume the objects are standing along the Z axis in their
 # natural position. Set to true only if you expect the objects 
 # to be sitting upfront. You can change it later in render.sh
 # if you want a different setting for each object.
-RENDER_ABOVE_Z=false
+RENDER_ABOVE_Z=true
 
 ##########################
 #### PATCH EXTRACTION ####
@@ -54,7 +54,7 @@ STRIDE_IN_TEST=2
 # Set to true if your objects are segmented from the background.
 # Otherwise random values should be generated at the borders 
 # of the objects.
-ARE_OBJECTS_SEGMENTED=false
+ARE_OBJECTS_SEGMENTED=true
 # percentage of all patches to use to train the autoencoder
 CAFFE_PERCENT=0.1
 # GPU Device number. Set to -1 to use CPU

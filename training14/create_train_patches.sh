@@ -1,1 +1,0 @@
-/home/yihernong/object_detector_6d/build/PatchGen --gentrainpatches --batch_size=100 --input=patches_full_p8_v0.01 --output=patches_full_p8_v0.01/patches.forest --gpu=0 --caffe_definition=patch_autoencoder_half.prototxt --caffe_weights=autoencoder_iter_200000.caffemodel

@@ -37,6 +37,7 @@
 # training*/patches_caffe_p8_v0*/*
 training*/patches_full*/*
 training*/renderings/*
+training*/
 
 # local build files
 **build

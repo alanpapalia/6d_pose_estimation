@@ -34,7 +34,7 @@ message Options {
 	// if object are not close to each other, set to true for faster performace	
 	optional bool search_single_object_in_group = 15 [default = false];
 	// set to false if the mesh does not contain the color of the object
-	optional bool use_color_similarity = 16 [default = true];
+	optional bool use_color_similarity = 16 [default = false];
 	// The final score of a hypotheses is computed as a weighted average 
 	// of the similarity (NN lookup), inliers (how many points are considered to
 	// be part of the object), clutter (how many points in the scene are unexplained),

@@ -61,8 +61,8 @@ void GrabCutSegmentation(cv::Mat& rgb, cv::Mat& depth, int xPix, int yPix, int x
     // display results and wait for keypress to continue
     cv::namedWindow("SegmentedColorImage");
     cv::imshow("SegmentedColorImage", rgb);
-    cv::namedWindow("SegmentedDepthImage");
-    cv::imshow("SegmentedDepthImage", depth);
+    // cv::namedWindow("SegmentedDepthImage");
+    // cv::imshow("SegmentedDepthImage", depth);
 
     waitKey(50);
 
@@ -646,6 +646,12 @@ std::vector<MeshUtils::ObjectHypothesis> HFTest::test_image(cv::Mat& rgb,  cv::M
 
         // for patch visualization
 
+
+        // int k=-1;
+        // while(k == -1){
+        //     cv::imshow("patch_rgb", patch_rgb);
+        //     k = cv::waitKey(30);
+        // }
         int k=-1;
         while(k == -1){
             cv::imshow("patch_rgb", patch_rgb);
@@ -1005,10 +1011,10 @@ std::vector<MeshUtils::ObjectHypothesis> HFTest::test_image(cv::Mat& rgb,  cv::M
                                 MeshUtils::ObjectHypothesis h(c, rotmat);
                                 bool accepted = mesh_utils.evaluate_hypothesis(h, location_hough_score, (cur_yawpitch_score + cur_roll_score) / 2.0f);
 
-                                if (FLAGS_visualize_hypotheses) {
+                                if (accepted/*FLAGS_visualize_hypotheses*/) {
 
                                     // avoid hypotheses with high clutter score
-                                    if (h.eval.clutter_score < 0.7) {
+                                    if (h.eval.clutter_score < 0.35) {
                                         std::cout << "accepted: " << accepted << std::endl;
                                         std::cout << "inliers: " << h.eval.inliers_ratio << std::endl;
                                         std::cout << "clutter: " << h.eval.clutter_score << std::endl;
@@ -1022,7 +1028,8 @@ std::vector<MeshUtils::ObjectHypothesis> HFTest::test_image(cv::Mat& rgb,  cv::M
                                         rgb.copyTo(rgb_rendered);
                                         mesh_utils.renderObject(rgb_rendered, c, rotmat, 0.7f);
 
-                                        while (cv::waitKey(30) == -1)
+                                        // while (cv::waitKey(30) == -1)
+                                        cv::waitKey(3000);
                                             cv::imshow("hypothesis visualization", rgb_rendered);
                                     } else {
                                         std::cout << "Not showing hypothesis due to high clutter score" << std::endl;
@@ -1068,13 +1075,14 @@ std::vector<MeshUtils::ObjectHypothesis> HFTest::test_image(cv::Mat& rgb,  cv::M
 
     std::vector<int> solution = mesh_utils.optimize_hypotheses(object_hypotheses);
     std::vector<MeshUtils::ObjectHypothesis> best_h;
-    std::cout << "History" << poseHistory->size() << std::endl;
+    std::cout << "History: " << poseHistory->size() << std::endl;
     for (int i = 0; i < solution.size(); ++i)
     {
         best_h.push_back(object_hypotheses[solution[i]]);
         Eigen::Affine3f chosenTransform = Eigen::Affine3f::Identity();
         //chosenTransform.translation = new Vector3i(best_h[i].rotmat(0,3), best_h[i].rotmat(1,3), best_h[i].rotmat(2,3))
         chosenTransform.matrix() = best_h[i].rotmat;
+        std::cout << chosenTransform.matrix() << endl;
         poseHistory->push_back(chosenTransform);
     }
     std::cout << "History" << poseHistory->size() << std::endl;
@@ -1360,7 +1368,13 @@ void HFTest::DetectObjects() {
         std::cout << col << " " << row << " " << count << std::endl;
 
         // Color, depth, bounding box coords (xStart, yStart, xLen, yLen)
-        GrabCutSegmentation(rgb, depth, 300, 100, 150, 200); 
+        int xLen = 150;
+        int yLen = 200;
+        int xcen = 375;
+        int ycen = 200;
+
+
+        GrabCutSegmentation(rgb, depth, xcen-(xLen/2), ycen-(yLen/2), xLen, yLen); 
 
         cv::Mat rgb_res;
         rgb.copyTo(rgb_res);
@@ -1412,9 +1426,13 @@ void HFTest::DetectObjects() {
                 color = cv::Scalar(0, 255, 0);
                 //mesh_utils.draw_hypotheses_boundingbox(h_tmp, rgb_res, color, 2);
                 //mesh_utils.draw_hypotheses_boundingbox(best_h[h], rgb_res, color, 2);
+<<<<<<< HEAD
+                std::string rgb_out_fname = output_folder + out_name + "_res.png";
+=======
                 std::string cnt = std::to_string(h);
                 std::string rgb_out_fname = output_folder + out_name + cnt + "_res.png";
 
+>>>>>>> e04ed2f76d4af3888ffb3fce7f4be802a8c5a439
                 std::cout << "Writing result image to: " << rgb_out_fname << std::endl;
                 cv::imwrite(rgb_out_fname, rgb_res);
             }

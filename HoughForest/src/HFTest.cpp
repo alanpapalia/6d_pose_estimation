@@ -485,7 +485,7 @@ std::vector<MeshUtils::ObjectHypothesis> HFTest::test_image(cv::Mat& rgb,  cv::M
         for (int j = 0; j < rgb.cols; ++j)
             patch_classes(i, j) = -1;
 
-    //houghmap for every class
+    //array of houghmaps for centers of every class
     std::vector<cv::Mat> class_hough_centers(number_of_classes_);
     for (int c = 0; c < number_of_classes_; ++c)
         class_hough_centers[c] = cv::Mat (rgb.rows, rgb.cols, CV_32FC1, cv::Scalar(0));
@@ -568,7 +568,7 @@ std::vector<MeshUtils::ObjectHypothesis> HFTest::test_image(cv::Mat& rgb,  cv::M
 //        }
 
 
-//LOCAL NORMALIZATION
+//LOCAL NORMALIZATION OF PATCHES (ASSIGNING MEAN RGB AND DEPTH VALS TO PATCHES)
 
         std::vector<float> float_data;
         for (int i = 0; i < batch_size; ++i) {
@@ -646,12 +646,11 @@ std::vector<MeshUtils::ObjectHypothesis> HFTest::test_image(cv::Mat& rgb,  cv::M
 
         // for patch visualization
 
-//        int k=-1;
-//        while(k == -1){
-//            cv::imshow("patch_rgb", patch_rgb);
-//            k = cv::waitKey(30);
-
-//        }
+        int k=-1;
+        while(k == -1){
+            cv::imshow("patch_rgb", patch_rgb);
+            k = cv::waitKey(30)
+        }
 
 
 
@@ -909,7 +908,7 @@ std::vector<MeshUtils::ObjectHypothesis> HFTest::test_image(cv::Mat& rgb,  cv::M
                 }
 
                 //iterate though yaw-pitch maxima and find roll maxima
-                //if hypotheses score drops more than best_yaw_pitch_score_ratio of best stop..
+                //if hypotheses score drops below best_yaw_pitch_score_ratio of best stop..
 
                 int max_yawpitch_h = std::min(max_yaw_pitch_hypotheses, (int)pose_hypotheses_2d.size());
                 for (int h_2d = 0; h_2d < max_yawpitch_h; ++h_2d) {
@@ -1035,6 +1034,7 @@ std::vector<MeshUtils::ObjectHypothesis> HFTest::test_image(cv::Mat& rgb,  cv::M
                                 if (accepted && poseHistory->size() == 0)
                                     object_hypotheses_local.push_back(h);
 
+                                // if accepted and within given rot / trans limits
                                 else if (accepted && similarPoses(poseHistory->at(poseHistory->size() - 1), transformCandidate, 0.03, 0.52))
                                     object_hypotheses_local.push_back(h);
                             }
@@ -1344,8 +1344,6 @@ void HFTest::DetectObjects() {
         // cv::Mat depth = cv::imread(depth_fname, CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR);
         // depth.convertTo(depth, CV_16UC1);
 
-        //Work here - Alan
-
         cv::Mat depth = cv::Mat::zeros(height, width, CV_16U);
 
         int col, row;
@@ -1414,12 +1412,13 @@ void HFTest::DetectObjects() {
                 color = cv::Scalar(0, 255, 0);
                 //mesh_utils.draw_hypotheses_boundingbox(h_tmp, rgb_res, color, 2);
                 //mesh_utils.draw_hypotheses_boundingbox(best_h[h], rgb_res, color, 2);
+                std::string cnt = std::to_string(h);
+                std::string rgb_out_fname = output_folder + out_name + cnt + "_res.png";
 
+                std::cout << "Writing result image to: " << rgb_out_fname << std::endl;
+                cv::imwrite(rgb_out_fname, rgb_res);
             }
         }
-        std::string rgb_out_fname = output_folder + out_name + "_res.png";
-        std::cout << "Writing result image to: " << rgb_out_fname << std::endl;
-        cv::imwrite(rgb_out_fname, rgb_res);
 
         fout.close();
         std::cout << "Detection finished. Total objects found: " << total_found << std::endl;

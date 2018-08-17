@@ -7,16 +7,21 @@
 #include <map>
 #include <queue>
 #include <utility>
+#include <iostream>
+#include <unistd.h>
+#include <sys/types.h>
+#include <pwd.h>
 
 #include <highgui.h>
 #include <opencv2/contrib/contrib.hpp>
 #include "opencv2/opencv.hpp"
-#include <iostream>
-#include <unistd.h>
+
 
 #include <glog/logging.h>
 
 #include <caffe/proto/caffe.pb.h>
+
+
 
 using namespace cv;
 using namespace std;
@@ -70,6 +75,7 @@ void GrabCutSegmentation(cv::Mat& rgb, cv::Mat& depth, int xPix, int yPix, int x
     destroyWindow("SegmentedColorImage");
     destroyWindow("SegmentedDepthImage");
 }
+
 
 //3D point in xtion's camera frame, to 2d image coordinates
 Eigen::Vector2i HFTest::Point3DToImage(const Eigen::Vector3f &p) {
@@ -348,6 +354,7 @@ bool similarPoses(
 
     std::cout << "Translational difference : " << position_diff << std::endl;
     std::cout << "Rotational difference : " << rotation_diff << std::endl;
+    std::cout << std::endl;
 
 
     return position_diff < translation_threshold &&
@@ -652,11 +659,7 @@ std::vector<MeshUtils::ObjectHypothesis> HFTest::test_image(cv::Mat& rgb,  cv::M
         //     cv::imshow("patch_rgb", patch_rgb);
         //     k = cv::waitKey(30);
         // }
-        int k=-1;
-        while(k == -1){
-            cv::imshow("patch_rgb", patch_rgb);
-            k = cv::waitKey(30)
-        }
+        
 
 
 
@@ -1029,10 +1032,10 @@ std::vector<MeshUtils::ObjectHypothesis> HFTest::test_image(cv::Mat& rgb,  cv::M
                                         mesh_utils.renderObject(rgb_rendered, c, rotmat, 0.7f);
 
                                         // while (cv::waitKey(30) == -1)
-                                        cv::waitKey(3000);
+                                        cv::waitKey(300);
                                             cv::imshow("hypothesis visualization", rgb_rendered);
                                     } else {
-                                        std::cout << "Not showing hypothesis due to high clutter score" << std::endl;
+                                        // std::cout << "Not showing hypothesis due to high clutter score" << std::endl;
                                     }
                                 }
                                 Eigen::Affine3f transformCandidate = Eigen::Affine3f::Identity();
@@ -1068,6 +1071,7 @@ std::vector<MeshUtils::ObjectHypothesis> HFTest::test_image(cv::Mat& rgb,  cv::M
         //std::cout << "Total hypotheses found: " << object_hypotheses.size() << std::endl;
         //std::cout << "Total time on icp: " << icp_total_time << "sec" << std::endl;
         std::cout << "Total execution time: " << omp_get_wtime() - obj_class_exec_time << "sec" << std::endl;
+        std::cout << std::endl;
     }
 
 
@@ -1075,17 +1079,16 @@ std::vector<MeshUtils::ObjectHypothesis> HFTest::test_image(cv::Mat& rgb,  cv::M
 
     std::vector<int> solution = mesh_utils.optimize_hypotheses(object_hypotheses);
     std::vector<MeshUtils::ObjectHypothesis> best_h;
-    std::cout << "History: " << poseHistory->size() << std::endl;
+    // std::cout << "Pose History Size: " << poseHistory->size() << std::endl;
     for (int i = 0; i < solution.size(); ++i)
     {
         best_h.push_back(object_hypotheses[solution[i]]);
         Eigen::Affine3f chosenTransform = Eigen::Affine3f::Identity();
         //chosenTransform.translation = new Vector3i(best_h[i].rotmat(0,3), best_h[i].rotmat(1,3), best_h[i].rotmat(2,3))
         chosenTransform.matrix() = best_h[i].rotmat;
+        std::cout << "Suggested Pose" << endl;
         std::cout << chosenTransform.matrix() << endl;
-        poseHistory->push_back(chosenTransform);
     }
-    std::cout << "History" << poseHistory->size() << std::endl;
 
     //visualize hough maps
 //    for(int c=0; c<detect_options.object_options_size(); c++) {
@@ -1329,43 +1332,53 @@ void HFTest::DetectObjects() {
 
     bool use_random_values_in_patches = !detect_options.are_objects_segmented();
 
-    std::string rgb_fname, depth_fname;
-    while (cin >> rgb_fname >> depth_fname) {
+    std::string homedir = getenv("HOME");
+    std::string trialName, frameNum;
 
+    std::cout << "Enter trial name: ";
+    cin >> trialName;
+    std::string baseDir = homedir+"/pose_estimation_pipeline/realsense_data_collection/frames/two_camera/trials/"+trialName+"/";
 
-        cv::Mat rgb = cv::imread(rgb_fname);
-        if (rgb.empty()) {
-            cout << "Cannot read file: " << rgb_fname << std::endl;
+    std::cout << "Enter frame number: ";
+    while (cin >> frameNum) {
+        std::cout << endl;
+
+        std::string colName1 = baseDir+"color1/frame"+frameNum+".jpg";
+        std::string colName2 = baseDir+"color2/frame"+frameNum+".jpg";
+        std::string depName1 = baseDir+"depth1/dep1_"+frameNum+".txt";
+        std::string depName2 = baseDir+"depth2/dep2_"+frameNum+".txt";
+
+        cv::Mat rgb1 = cv::imread(colName1);
+        cv::Mat rgb2 = cv::imread(colName2);
+        if (rgb1.empty() || rgb2.empty()) {
+            cout << "Cannot read file(s): " << colName1 << " / " << colName2 << std::endl;
             continue;
         }
 
-        std::ifstream depth_file;
-        depth_file.open(depth_fname.c_str());
-        int width, height;
-        depth_file >> width;
-        depth_file >> height;
-        depth_file.clear();
-
-        height = 480;
-        width = 640;
+        std::ifstream depth_file1, depth_file2;
+        depth_file1.open(depName1.c_str());
+        depth_file2.open(depName2.c_str());
 
         // cv::Mat depth = cv::imread(depth_fname, CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR);
         // depth.convertTo(depth, CV_16UC1);
 
-        cv::Mat depth = cv::Mat::zeros(height, width, CV_16U);
+        cv::Mat depth1 = cv::Mat::zeros(rgb1.rows, rgb1.cols, CV_16U);
+        cv::Mat depth2 = cv::Mat::zeros(rgb2.rows, rgb2.cols, CV_16U);
 
         int col, row;
         int count = 0;
-        double x;
+        double x1, x2;
 
-        for (row = 0; row < rgb.rows; ++row) {
-            for (col = 0; col < rgb.cols; ++col) {
-                depth_file >> x;
-                depth.at<ushort>(row, col) = x * 1000.0f;
+        // Assuming images will be of same dimension
+        for (row = 0; row < rgb1.rows; ++row) {
+            for (col = 0; col < rgb1.cols; ++col) {
+                depth_file1 >> x1;
+                depth1.at<ushort>(row, col) = x1 * 1000.0f;
+                depth_file2 >> x2;
+                depth2.at<ushort>(row, col) = x2 * 1000.0f;
                 count += 1;
             }
         }
-        std::cout << col << " " << row << " " << count << std::endl;
 
         // Color, depth, bounding box coords (xStart, yStart, xLen, yLen)
         int xLen = 150;
@@ -1374,21 +1387,41 @@ void HFTest::DetectObjects() {
         int ycen = 200;
 
 
-        GrabCutSegmentation(rgb, depth, xcen-(xLen/2), ycen-(yLen/2), xLen, yLen); 
+        GrabCutSegmentation(rgb1, depth1, xcen-(xLen/2), ycen-(yLen/2), xLen, yLen); 
+        GrabCutSegmentation(rgb2, depth2, xcen-(xLen/2), ycen-(yLen/2), xLen, yLen); 
 
-        cv::Mat rgb_res;
-        rgb.copyTo(rgb_res);
+        cv::Mat rgb_res1, rgb_res2;
+        rgb1.copyTo(rgb_res1);
+        rgb2.copyTo(rgb_res2);
 
-        mesh_utils.setScene(rgb, depth, detect_options.distance_threshold());
-        std::vector<MeshUtils::ObjectHypothesis> h_vec = test_image(
-                    rgb, depth, detect_options, mesh_utils, use_random_values_in_patches,
+
+        mesh_utils.setScene(rgb1, depth1, detect_options.distance_threshold());
+
+        // Get vector of suggested poses from both cameras
+        // Checking poses from camera 1
+        std::vector<MeshUtils::ObjectHypothesis> h_vec1 = test_image(
+                    rgb1, depth1, detect_options, mesh_utils, use_random_values_in_patches,
                     detect_options.distance_threshold(), poseHistory);
+
+        // Checking poses from camera 2
+        mesh_utils.setScene(rgb2, depth2, detect_options.distance_threshold());
+        std::vector<MeshUtils::ObjectHypothesis> h_vec2 = test_image(
+                    rgb2, depth2, detect_options, mesh_utils, use_random_values_in_patches,
+                    detect_options.distance_threshold(), poseHistory);
+        std::vector<MeshUtils::ObjectHypothesis> h_vec;
+
+        // Combine vectors of suggested poses
+        h_vec.reserve(h_vec1.size() + h_vec2.size());
+        h_vec.insert(h_vec.end(), h_vec1.begin(), h_vec1.end());
+        h_vec.insert(h_vec.end(), h_vec2.begin(), h_vec2.end());
+
+        std::cout << "Hypothesis Vector Sizes (cam1, cam2): " << h_vec1.size() << ", " << h_vec2.size() << std::endl;
+        std::cout << std::endl;
 
         std::sort(h_vec.begin() , h_vec.end(), hcomparator_fs);
         std::vector<int> hcounter(detect_options.object_options_size(), 0);
 
-        std::string out_name = GetOutName(rgb_fname);
-        std::string out_fname = output_folder + out_name + "_res.txt";
+        std::string out_fname = output_folder + frameNum + "_res.txt";
         std::ofstream fout(out_fname.c_str());
         CHECK(fout) << "Cannot write to output file " << out_fname;
         std::cout << "Writing info to: " << out_fname << std::endl;
@@ -1415,31 +1448,32 @@ void HFTest::DetectObjects() {
                 // fout << "ground truth error : " << h_vec[h].eval.ground_truth_error << std::endl;
                 fout << std::endl;
 
+                Eigen::Affine3f bestHypot;
+                bestHypot.matrix() = h_vec[h].rotmat;
+                poseHistory->push_back(bestHypot);
+
                 //TODO
                 //implement the alignment functionality
                 //if(mesh_utils.is_plane_detected() &&
                 // detect_options.object_options(obj_id).align_z_axis())
                 //   correctPose(h_vec[h].rotmat, mesh_utils.getUpVector());
 
-                mesh_utils.renderObject(rgb_res, h_vec[h].obj_id, h_vec[h].rotmat, 1.0f);
-                cv::Scalar color;
-                color = cv::Scalar(0, 255, 0);
-                //mesh_utils.draw_hypotheses_boundingbox(h_tmp, rgb_res, color, 2);
-                //mesh_utils.draw_hypotheses_boundingbox(best_h[h], rgb_res, color, 2);
-<<<<<<< HEAD
-                std::string rgb_out_fname = output_folder + out_name + "_res.png";
-=======
-                std::string cnt = std::to_string(h);
-                std::string rgb_out_fname = output_folder + out_name + cnt + "_res.png";
+                mesh_utils.renderObject(rgb_res1, h_vec[h].obj_id, h_vec[h].rotmat, 1.0f);
+                mesh_utils.renderObject(rgb_res2, h_vec[h].obj_id, h_vec[h].rotmat, 1.0f);
 
->>>>>>> e04ed2f76d4af3888ffb3fce7f4be802a8c5a439
-                std::cout << "Writing result image to: " << rgb_out_fname << std::endl;
-                cv::imwrite(rgb_out_fname, rgb_res);
+                std::string rgb_out_fname1 = output_folder + frameNum + "_res1.png";
+                std::string rgb_out_fname2 = output_folder + frameNum + "_res2.png";
+
+                std::cout << "Writing result images to: " << rgb_out_fname1 << std::endl;
+                cv::imwrite(rgb_out_fname1, rgb_res1);
+                cv::imwrite(rgb_out_fname2, rgb_res2);
             }
         }
 
         fout.close();
         std::cout << "Detection finished. Total objects found: " << total_found << std::endl;
+
+        std::cout << "Enter frame number: ";
     }
 
 }

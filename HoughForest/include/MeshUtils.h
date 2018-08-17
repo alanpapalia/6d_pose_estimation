@@ -78,16 +78,19 @@ class MeshUtils {
     boost::unordered_map<int, float> obj_nn_search_radius_;
     boost::unordered_map<int, float> obj_icp_iterations_;
 
-    //downsampling
+    // downsampling
     float scene_ds_leaf_size_;
     float object_ds_leaf_size_;
 
-    //scene clustering
+    // scene clustering
     double eps_angle_threshold_;
     int min_points_;
     float curvature_threshold_;
     float tolerance_near_;
     float tolerance_far_;
+
+    // 
+    Eigen::Affine3f TCam1ToCam2_, TCam2ToWorld_;
 
     int num_threads_;    
 
@@ -96,6 +99,11 @@ class MeshUtils {
     cv::Mat getRollMat(float roll);
 
     Eigen::Matrix4f get_rotmat_from_yaw_pitch_roll(float yaw, float pitch, float roll);
+
+    Eigen::Affine3f transformCam1ToCam2Coords(Eigen::Affine3f m);
+    Eigen::Affine3f transformCam2ToCam1Coords(Eigen::Affine3f m);
+    Eigen::Affine3f transformCam2ToWorldCoords(Eigen::Affine3f m);
+
     void world_to_image_coords(float x, float y, float z, int &row, int &col);
 
 
@@ -149,6 +157,10 @@ public:
 
         num_threads_ = 1;
         plane_detected_ = false;
+
+
+
+         
     }
 
     struct HypothesisEvaluation {

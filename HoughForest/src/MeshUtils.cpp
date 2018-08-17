@@ -22,10 +22,17 @@
 #include <vtkWindowToImageFilter.h>
 #include <vtkPNGWriter.h>
 
+#include <unistd.h>
+#include <sys/types.h>
+#include <pwd.h>
+
+
 
 //when rotmat is used, it is assumed to be in the xtion coordinate frame
 //when yaw, pitch, roll is used, it is assumed they come from forest leaves
 //that contain angles in vtk camera frame.
+
+
 
 Eigen::Matrix4f MeshUtils::get_rotmat_from_yaw_pitch_roll(float yaw, float pitch, float roll){
 
@@ -57,6 +64,32 @@ Eigen::Matrix4f MeshUtils::get_rotmat_from_yaw_pitch_roll(float yaw, float pitch
 
     return (Rz * Ry * Rx);
 
+}
+
+Eigen::Affine3f MeshUtils::transformCam1ToCam2Coords(Eigen::Affine3f m){
+    Eigen::Affine3f TCam1ToCam2 = Eigen::Affine3f::Identity();;
+    TCam1ToCam2.matrix() << 1, 0, 0, 0,
+                            0, 1, 0, 0,
+                            0, 0, 1, 0,
+                            0, 0, 0, 1;
+    return TCam1ToCam2 * m;
+    // return m;
+}
+
+Eigen::Affine3f MeshUtils::transformCam2ToCam1Coords(Eigen::Affine3f m){
+    // Eigen::Affine3f TCam2toCam1 = TCam1ToCam2.inverse();
+    // return TCam2toCam1 * m;
+    return m;
+}
+
+Eigen::Affine3f MeshUtils::transformCam2ToWorldCoords(Eigen::Affine3f m){
+    Eigen::Affine3f TCam2ToWorld = Eigen::Affine3f::Identity();
+    TCam2ToWorld.matrix() << 1, 0, 0, 0,
+                             0, 1, 0, 0,
+                             0, 0, 1, 0,
+                             0, 0, 0, 1;
+    return TCam2ToWorld * m;
+    // return m;
 }
 
 void MeshUtils::world_to_image_coords(float x, float y, float z, int &row, int &col){
@@ -367,11 +400,10 @@ void MeshUtils::setScene(const cv::Mat &rgb, const cv::Mat &depth, float distanc
         }
     }
 
-//    cv::imshow("HI", rgb);
-    //Fill cloud somehow...
-
-    std::string writePath = "/home/yihernong/object_detector_6d/build/scene.ply";
-    pcl::io::savePLYFile(writePath, *scene_cloud_);
+    // Code to visualize created RGB pointcloud
+    // std::string homedir = getenv("HOME");
+    // std::string writePath = homedir+"/pose_estimation_pipeline/6d_pose_estimation/build/scene.ply";
+    // pcl::io::savePLYFile(writePath, *scene_cloud_);
 
     //set images
     scene_rgb_ = rgb;

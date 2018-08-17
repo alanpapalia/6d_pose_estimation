@@ -8,7 +8,7 @@ OBJ_DETECTOR_PATH=$(pwd)/build
 CAFFE_BINARY=$HOME/caffe/build/tools/caffe
 
 # define the folder with the meshes (.ply)
-MESH_FOLDER=meshes
+MESH_FOLDER=meshes/cube
 
 # Set default options for all objects
 # If you need a specific option for some
@@ -550,8 +550,8 @@ fx: $FX
 fy: $FY
 cx: $CX
 cy: $CY
-search_single_object_instance: false
-search_single_object_in_group: false
+search_single_object_instance: true
+search_single_object_in_group: true
 use_color_similarity: true
 similarity_coeff: 10
 inliers_coeff: 2.5

@@ -11,7 +11,6 @@ int main(int argc, const char * argv[])
         std::string fileLoc = argv[1];
         Mat image, testImage;
         image= cv::imread(fileLoc);
-        testImage= cv::imread("../test_imgs/camera_1/frame2.jpg");
 
     
         // define bounding rectangle 

@@ -13,7 +13,6 @@
 
 void HFTrain::getTrainSet(TrainSet &train_set, int &number_of_classes, int &feature_vector_length)
 {			    
-
     std::ifstream finput(input_file_.c_str(), std::ios::in | std::ios::binary);
     CHECK(finput) << "Could not open file " << input_file_;
 	

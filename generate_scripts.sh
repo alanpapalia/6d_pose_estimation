@@ -8,7 +8,7 @@ OBJ_DETECTOR_PATH=$(pwd)/build
 CAFFE_BINARY=$HOME/caffe/build/tools/caffe
 
 # define the folder with the meshes (.ply)
-MESH_FOLDER=meshes/cube
+MESH_FOLDER=meshes/cube_20
 
 # Set default options for all objects
 # If you need a specific option for some
@@ -27,14 +27,14 @@ RENDER_NUM_HEIGHTS=3
 RENDER_HEIGHT_STEP=0.2
 # simulate brightness, in each lighting the image
 # gets brighter
-RENDER_LIGHTINGS=2
+RENDER_LIGHTINGS=3
 # number of camera rotations in each position on the sphere
 RENDER_IN_PLACE_CAM_ROT=36
 # We assume the objects are standing along the Z axis in their
 # natural position. Set to true only if you expect the objects 
 # to be sitting upfront. You can change it later in render.sh
 # if you want a different setting for each object.
-RENDER_ABOVE_Z=true
+RENDER_ABOVE_Z=false
 
 ##########################
 #### PATCH EXTRACTION ####
